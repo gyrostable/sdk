@@ -10,6 +10,10 @@ import contracts from "./contracts";
 import { Address, InputCoin, MintResult, Token } from "./types";
 import { parseLogs } from "./utils";
 
+/**
+ * Main entrypoint to communicate with the Gyro protocol
+ * Allows to easily mint and redeem Gyro tokens
+ */
 export default class Gyro {
   private signer: Signer;
   private gyroFund: GyroFund;

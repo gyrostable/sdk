@@ -1,6 +1,8 @@
 {
   "name": "@gyrostable/sdk",
   "license": "UNLICENSED",
+  "main": "./dist/gyro-sdk.bundle.js",
+  "types": "./dist/sdk/src/index.d.ts",
   "devDependencies": {
     "@types/chai": "^4.2.14",
     "@types/lodash": "^4.14.168",

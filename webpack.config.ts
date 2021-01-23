@@ -4,7 +4,7 @@ import * as webpack from "webpack";
 const config: webpack.Configuration = {
   mode: "development",
   entry: "./src/index.ts",
-  devtool: "inline-source-map",
+  devtool: "eval-source-map",
   module: {
     rules: [
       {
