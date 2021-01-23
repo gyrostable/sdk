@@ -2,13 +2,19 @@
 
 TypeScript/JavaScript SDK to interact with Gyro.
 
-## Installation
+## Development
 
-Add the `@gyrostable/sdk` package to your package.json
+Follow the installation instructions of `https://github.com/stablecoin-labs/core`
+including starting the node and linking the package.
+Then run the following
 
 ```
-yarn add @gyrostable/sdk
+yarn
+yarn link
+yarn build
 ```
+
+To compile automatically when changing something, run `yarn build --watch` instead of `yarn build`.
 
 ## Usage
 
