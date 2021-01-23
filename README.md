@@ -10,6 +10,7 @@ Then run the following
 
 ```
 yarn
+yarn link @gyrostable/sdk
 yarn link
 yarn build
 ```
