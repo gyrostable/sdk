@@ -17,9 +17,9 @@ describe("Gyro", () => {
         { token: contracts.DAIERC20.address, amount: BigNumber.from(10).pow(18).mul(2500) },
         { token: contracts.WETHERC20.address, amount: BigNumber.from(10).pow(18).mul(2) },
       ];
-      const balanceBefore = await gyro.balance();
+      const balanceBefore = (await gyro.balance()).value;
       const mintResult = await gyro.mint(inputs);
-      const balanceAfter = await gyro.balance();
+      const balanceAfter = (await gyro.balance()).value;
       expect(mintResult.amountMinted.isZero()).to.be.false;
       expect(balanceAfter.sub(balanceBefore).eq(mintResult.amountMinted)).to.be.true;
     });

@@ -20,3 +20,37 @@ export interface Token {
   symbol: string;
   decimals: number;
 }
+
+/**
+ * Wrapper around `BigNumber` to express a monetary amount
+ *
+ * For doing computation on the amount, the underlying value can be retrieved using `value`
+ * For displaying, the `toNormalizedXXX()` returns a representation without the decimals
+ */
+export class MonetaryAmount {
+  private scale: BigNumber;
+
+  constructor(readonly value: BigNumber, readonly decimals: number) {
+    this.scale = BigNumber.from(10).pow(decimals);
+  }
+
+  /**
+   * Amount after dividing by the decimal scale
+   * @returns normalized amount
+   */
+  get normalizedValue(): BigNumber {
+    return this.value.div(this.scale);
+  }
+
+  toNormalizedNumber() {
+    return this.normalizedValue.toNumber();
+  }
+
+  toNormalizedString() {
+    return this.normalizedValue.toString();
+  }
+
+  toString() {
+    return this.value.toString();
+  }
+}

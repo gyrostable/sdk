@@ -1,4 +1,5 @@
 import {
+  ERC20,
   ERC20__factory as ERC20Factory,
   GyroFund,
   GyroFundV1__factory as GyroFundV1Factory,
@@ -7,8 +8,10 @@ import {
 } from "@gyrostable/core/typechain";
 import { BigNumber, ContractReceipt, ContractTransaction, providers, Signer } from "ethers";
 import contracts from "./contracts";
-import { Address, InputCoin, MintResult, Token } from "./types";
+import { Address, InputCoin, MintResult, MonetaryAmount, Token } from "./types";
 import { parseLogs } from "./utils";
+
+export const DECIMALS = 18;
 
 /**
  * Main entrypoint to communicate with the Gyro protocol
@@ -83,12 +86,36 @@ export default class Gyro {
     });
   }
 
-  async balance(): Promise<BigNumber> {
-    return this.gyroFund.balanceOf(this._address);
+  /**
+   * Returns the Gyro balance of the current user
+   *
+   * @returns balance of the user as a `MonetaryAmount`
+   */
+  async balance(): Promise<MonetaryAmount> {
+    const balance = await this.gyroFund.balanceOf(this._address);
+    return new MonetaryAmount(balance, DECIMALS);
   }
 
-  tokenBalance(tokenAddress: Address): Promise<BigNumber> {
-    return ERC20Factory.connect(tokenAddress, this.signer).balanceOf(this.address);
+  /**
+   * Returns the balance of `token` of the current user
+   *
+   * @param token ERC20 token for which to retrieve balance
+   * @returns balance of the user as a `MonetaryAmount`
+   */
+  async tokenBalance(token: Address | Token): Promise<MonetaryAmount> {
+    let contract: ERC20;
+    let decimals: number;
+
+    if (typeof token === "string") {
+      contract = ERC20Factory.connect(token, this.signer);
+      decimals = await contract.decimals();
+    } else {
+      contract = ERC20Factory.connect(token.address, this.signer);
+      decimals = token.decimals;
+    }
+
+    const balance = await contract.balanceOf(this.address);
+    return new MonetaryAmount(balance, decimals);
   }
 
   getSupportedTokensAddresses(): Promise<Address[]> {
