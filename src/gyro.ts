@@ -7,7 +7,7 @@ import {
 } from "@gyrostable/core/typechain";
 import { BigNumber, ContractReceipt, ContractTransaction, providers, Signer } from "ethers";
 import contracts from "./contracts";
-import { Address, InputCoin, MintResult } from "./types";
+import { Address, InputCoin, MintResult, Token } from "./types";
 import { parseLogs } from "./utils";
 
 export default class Gyro {
@@ -22,17 +22,21 @@ export default class Gyro {
    *                 object with `new ethers.providers.Web3Provider(window.ethereum)`
    * @returns a `Gyro` instance
    */
-  static async create(provider: providers.JsonRpcProvider, address?: string) {
+  static async create(provider: providers.JsonRpcProvider, address?: Address) {
     if (!address) {
       address = await provider.getSigner().getAddress();
     }
     return new Gyro(provider, address);
   }
 
-  private constructor(private provider: providers.JsonRpcProvider, private address: string) {
-    this.signer = provider.getSigner(address);
+  private constructor(private provider: providers.JsonRpcProvider, private _address: Address) {
+    this.signer = provider.getSigner(_address);
     this.gyroFund = GyroFundV1Factory.connect(contracts.GyroFundV1.address, this.signer);
     this.gyroLib = GyroLibFactory.connect(contracts.GyroLib.address, this.signer);
+  }
+
+  get address(): Address {
+    return this._address;
   }
 
   /**
@@ -76,7 +80,35 @@ export default class Gyro {
   }
 
   async balance(): Promise<BigNumber> {
-    return this.gyroFund.balanceOf(this.address);
+    return this.gyroFund.balanceOf(this._address);
+  }
+
+  tokenBalance(tokenAddress: Address): Promise<BigNumber> {
+    return ERC20Factory.connect(tokenAddress, this.signer).balanceOf(this.address);
+  }
+
+  getSupportedTokensAddresses(): Promise<Address[]> {
+    return this.gyroLib.getSupportedTokens();
+  }
+
+  async getSupportedTokens(): Promise<Token[]> {
+    const supportedAddresses = await this.getSupportedTokensAddresses();
+    return Promise.all(
+      supportedAddresses.map(async (address) => {
+        const contract = ERC20Factory.connect(address, this.signer);
+        const [name, symbol, decimals] = await Promise.all([
+          contract.name(),
+          contract.symbol(),
+          contract.decimals(),
+        ]);
+        return {
+          address,
+          name,
+          symbol,
+          decimals,
+        };
+      })
+    );
   }
 
   private extractMintedAmount(mintReceipt: ContractReceipt): BigNumber {
@@ -91,7 +123,7 @@ export default class Gyro {
   ): Promise<ContractTransaction[]> {
     const ercs = inputs.map((i) => ERC20Factory.connect(i.token, this.signer));
     const allowances = await Promise.all(
-      ercs.map((erc) => erc.allowance(this.address, this.gyroLib.address))
+      ercs.map((erc) => erc.allowance(this._address, this.gyroLib.address))
     );
     const approvePromises = [];
     for (let i = 0; i < ercs.length; i++) {
