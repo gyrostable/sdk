@@ -14,6 +14,7 @@ yarn link
 yarn build
 ```
 
+To make sure everything is working, try running the tests using `yarn test`.
 To compile automatically when changing something, run `yarn build --watch` instead of `yarn build`.
 
 ## Usage
