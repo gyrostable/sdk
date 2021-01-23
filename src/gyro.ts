@@ -6,7 +6,14 @@ import {
   GyroLib,
   GyroLib__factory as GyroLibFactory,
 } from "@gyrostable/core/typechain";
-import { BigNumber, ContractReceipt, ContractTransaction, providers, Signer } from "ethers";
+import {
+  BigNumber,
+  BigNumberish,
+  ContractReceipt,
+  ContractTransaction,
+  providers,
+  Signer,
+} from "ethers";
 import contracts from "./contracts";
 import { Address, InputCoin, MintResult, MonetaryAmount, Token } from "./types";
 import { parseLogs } from "./utils";
@@ -72,7 +79,7 @@ export default class Gyro {
   ): Promise<MintResult> {
     const approveTxs = await this.approveTokensForLib(inputs, approveFuture);
     const tokensIn = inputs.map((i) => i.token);
-    const amountsIn = inputs.map((i) => i.amount);
+    const amountsIn = inputs.map((i) => this.numberFromInputAmount(i.amount));
 
     const tx = await this.gyroLib.mintFromUnderlyingTokens(tokensIn, amountsIn, minMinted);
     const allTxs = [tx].concat(approveTxs).map((t) => t.wait());
@@ -156,13 +163,24 @@ export default class Gyro {
     const allowances = await Promise.all(
       ercs.map((erc) => erc.allowance(this._address, this.gyroLib.address))
     );
+
     const approvePromises = [];
     for (let i = 0; i < ercs.length; i++) {
       if (allowances[i] < inputs[i].amount) {
-        const approveAmount = approveFuture ? BigNumber.from(10).pow(50) : inputs[i].amount;
+        const approveAmount = approveFuture
+          ? BigNumber.from(10).pow(50)
+          : this.numberFromInputAmount(inputs[i].amount);
         approvePromises.push(ercs[i].approve(this.gyroLib.address, approveAmount));
       }
     }
     return Promise.all(approvePromises);
+  }
+
+  private numberFromInputAmount(amount: BigNumberish | MonetaryAmount): BigNumber {
+    if (amount instanceof MonetaryAmount) {
+      return amount.value;
+    } else {
+      return BigNumber.from(amount);
+    }
   }
 }

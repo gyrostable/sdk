@@ -23,18 +23,23 @@ The SDK is based around the `Gyro` class, which can be instantiated as follows:
 
 
 ```typescript
-import { Gyro, contracts } from "@gyrostable/sdk";
+import { Gyro } from "@gyrostable/sdk";
 import { ethers } from "ethers";
 
 const provider = new ethers.providers.Web3Provider(window.ethereum);
 const gyro = await Gyro.create(provider);
 
-const currentBalance = await gyro.balance();
+const tokens = await gyro.getSupportedTokens();
+
+const usdt = tokens.find((t) => t.symbol === "USDT");
+const weth = tokens.find((t) => t.symbol === "WETH");
 
 const inputs = [
-  { token: contracts.DAIERC20.address, amount: BigNumber.from(10).pow(18).mul(2500) },
-  { token: contracts.WETHERC20.address, amount: BigNumber.from(10).pow(18).mul(2) },
+  { token: usdt.address, amount: MonetaryAmount.fromNormalized(2500, usdc.decimals) }
+  { token: weth.address, amount: MonetaryAmount.fromNormalized(2, weth.decimals) }
 ];
 const mintResult = await gyro.mint(inputs);
-console.log(`Minted ${mintResult} tokens`)
+console.log(`Minted ${mintResult} tokens`);
+const currentBalance = await gyro.balance();
+console.log(`Gyro balance: ${currentBalance.toNormalizedString()}`);
 ```
