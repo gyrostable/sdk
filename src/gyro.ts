@@ -1,59 +1,105 @@
 import {
-  BalancerExternalTokenRouter,
-  BalancerExternalTokenRouter__factory,
+  ERC20__factory as ERC20Factory,
   GyroFund,
-  GyroFundV1__factory,
-  ERC20__factory,
+  GyroFundV1__factory as GyroFundV1Factory,
+  GyroLib,
+  GyroLib__factory as GyroLibFactory,
 } from "@gyrostable/core/typechain";
-import { BigNumber, providers } from "ethers";
+import { BigNumber, ContractReceipt, ContractTransaction, providers, Signer } from "ethers";
 import contracts from "./contracts";
-import { InputCoin } from "./types";
+import { Address, InputCoin, MintResult } from "./types";
+import { parseLogs } from "./utils";
 
 export default class Gyro {
+  private signer: Signer;
   private gyroFund: GyroFund;
-  private balancerExternalTokenRouter: BalancerExternalTokenRouter;
+  private gyroLib: GyroLib;
 
-  constructor(private provider: providers.JsonRpcProvider) {
-    this.gyroFund = GyroFundV1__factory.connect(contracts.GyroFundV1.address, provider);
-    this.balancerExternalTokenRouter = BalancerExternalTokenRouter__factory.connect(
-      contracts.BalancerExternalTokenRouter,
-      provider
-    );
+  /**
+   * Creates a new `Gyro` instance
+   *
+   * @param provider a provider for ethers, can be constructed from `ethereum`
+   *                 object with `new ethers.providers.Web3Provider(window.ethereum)`
+   * @returns a `Gyro` instance
+   */
+  static async create(provider: providers.JsonRpcProvider, address?: string) {
+    if (!address) {
+      address = await provider.getSigner().getAddress();
+    }
+    return new Gyro(provider, address);
   }
 
-  async mint(inputs: InputCoin[], minMinted: number = 0) {
-    for (const input of inputs) {
-      const erc = ERC20__factory.connect(input.token, this.provider);
-      await erc.approve(this.balancerExternalTokenRouter.address, input.amount);
-    }
+  private constructor(private provider: providers.JsonRpcProvider, private address: string) {
+    this.signer = provider.getSigner(address);
+    this.gyroFund = GyroFundV1Factory.connect(contracts.GyroFundV1.address, this.signer);
+    this.gyroLib = GyroLibFactory.connect(contracts.GyroLib.address, this.signer);
+  }
 
+  /**
+   * Changes the account used to access Gyro contract
+   *
+   * @param address address of the account to use
+   */
+  changeAccount(address: Address) {
+    this.signer = this.provider.getSigner(address);
+    this.gyroFund = this.gyroFund.connect(this.signer);
+    this.gyroLib = this.gyroLib.connect(this.signer);
+  }
+
+  /**
+   * Mints at lest `minMinted` Gyro given `inputs`
+   *
+   * @param inputs an array of input coins to be used for minting
+   * @param minMinted the minimum amount of Gyro to be minted, to let the caller decide on maximum slippage
+   * @param approveFuture whether to approve the library to transfer the minimum amount to mint
+   *                      or a large amount to avoid needing to approve again for future mints
+   */
+  async mint(
+    inputs: InputCoin[],
+    minMinted: number = 0,
+    approveFuture: boolean = true
+  ): Promise<MintResult> {
+    const approveTxs = await this.approveTokensForLib(inputs, approveFuture);
     const tokensIn = inputs.map((i) => i.token);
     const amountsIn = inputs.map((i) => i.amount);
-    const tx = await this.balancerExternalTokenRouter.deposit(tokensIn, amountsIn);
-    const receipt = await tx.wait();
-    if (!receipt.logs[0]) {
-      throw new Error("log not found");
-    }
-    const evt = this.balancerExternalTokenRouter.interface.parseLog(receipt.logs[0]);
-    const addresses: string[] = evt.args.bpAddresses;
-    const amounts: BigNumber[] = evt.args.bpAmounts;
 
-    const uniqueAmounts: Record<string, BigNumber> = {};
-    for (let i = 0; i < addresses.length; i++) {
-      const address = addresses[i];
-      if (!(address in uniqueAmounts)) {
-        uniqueAmounts[address] = BigNumber.from(0);
+    const tx = await this.gyroLib.mintFromUnderlyingTokens(tokensIn, amountsIn, minMinted);
+    const allTxs = [tx].concat(approveTxs).map((t) => t.wait());
+
+    return Promise.all(allTxs).then(([mintReceipt, ...approveReceipts]) => {
+      return {
+        amountMinted: this.extractMintedAmount(mintReceipt),
+        mintReceipt,
+        approveReceipts,
+      };
+    });
+  }
+
+  async balance(): Promise<BigNumber> {
+    return this.gyroFund.balanceOf(this.address);
+  }
+
+  private extractMintedAmount(mintReceipt: ContractReceipt): BigNumber {
+    const events = parseLogs(mintReceipt, this.gyroLib.interface, this.gyroFund.interface);
+    const mintEvent = events.find((evt) => evt.name === "Mint");
+    return mintEvent ? mintEvent.args.amount : BigNumber.from(0);
+  }
+
+  private async approveTokensForLib(
+    inputs: InputCoin[],
+    approveFuture: boolean = true
+  ): Promise<ContractTransaction[]> {
+    const ercs = inputs.map((i) => ERC20Factory.connect(i.token, this.signer));
+    const allowances = await Promise.all(
+      ercs.map((erc) => erc.allowance(this.address, this.gyroLib.address))
+    );
+    const approvePromises = [];
+    for (let i = 0; i < ercs.length; i++) {
+      if (allowances[i] < inputs[i].amount) {
+        const approveAmount = approveFuture ? BigNumber.from(10).pow(50) : inputs[i].amount;
+        approvePromises.push(ercs[i].approve(this.gyroLib.address, approveAmount));
       }
-      uniqueAmounts[address] = uniqueAmounts[address].add(amounts[i]);
     }
-
-    const mintAddresses: string[] = [];
-    const mintAmounts: BigNumber[] = [];
-    for (const address in uniqueAmounts) {
-      mintAddresses.push(address);
-      mintAmounts.push(uniqueAmounts[address]);
-    }
-
-    await this.gyroFund.mint(mintAddresses, mintAmounts, minMinted);
+    return Promise.all(approvePromises);
   }
 }

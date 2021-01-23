@@ -2,9 +2,14 @@
   "name": "@gyrostable/sdk",
   "license": "UNLICENSED",
   "devDependencies": {
+    "@types/chai": "^4.2.14",
+    "@types/lodash": "^4.14.168",
+    "@types/mocha": "^8.2.0",
     "@types/node": "^14.14.21",
     "@types/webpack": "^4.41.26",
+    "chai": "^4.2.0",
     "cross-env": "^7.0.3",
+    "mocha": "^8.2.1",
     "ts-loader": "^8.0.14",
     "ts-node": "^9.1.1",
     "tsconfig-paths": "^3.9.0",
@@ -13,12 +18,14 @@
     "webpack-cli": "^4.3.1"
   },
   "scripts": {
-    "build": "cross-env TS_NODE_PROJECT=tsconfig.webpack.json webpack"
+    "build": "cross-env TS_NODE_PROJECT=tsconfig.webpack.json webpack",
+    "test": "mocha --extension test.ts --require ts-node/register test"
   },
   "prettier": {
     "printWidth": 100
   },
   "dependencies": {
-    "ethers": "^5.0.26"
+    "ethers": "5.0.26",
+    "lodash": "^4.17.20"
   }
 }
