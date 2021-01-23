@@ -21,7 +21,7 @@
   },
   "scripts": {
     "build": "cross-env TS_NODE_PROJECT=tsconfig.webpack.json webpack",
-    "test": "mocha --extension test.ts --require ts-node/register test"
+    "test": "mocha --extension test.ts --require ts-node/register"
   },
   "prettier": {
     "printWidth": 100

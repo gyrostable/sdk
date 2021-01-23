@@ -1,4 +1,4 @@
-import { BigNumber, ContractReceipt } from "ethers";
+import { BigNumber, BigNumberish, ContractReceipt } from "ethers";
 
 export type Optional<T> = T | null;
 export type Address = string;
@@ -29,8 +29,10 @@ export interface Token {
  */
 export class MonetaryAmount {
   private scale: BigNumber;
+  readonly value: BigNumber;
 
-  constructor(readonly value: BigNumber, readonly decimals: number) {
+  constructor(_value: BigNumberish, readonly decimals: number) {
+    this.value = BigNumber.from(_value);
     this.scale = BigNumber.from(10).pow(decimals);
   }
 
