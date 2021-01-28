@@ -1,7 +1,10 @@
 import { BigNumber, ethers } from "ethers";
-import { Gyro, contracts } from "../src";
+import { Gyro } from "../src";
+import { deployment } from "@gyrostable/core";
 import { expect } from "chai";
 import { isAddress } from "ethers/lib/utils";
+
+const contracts = deployment.contracts;
 
 describe("Gyro", () => {
   let gyro: Gyro;

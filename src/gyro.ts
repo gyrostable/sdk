@@ -5,7 +5,7 @@ import {
   GyroFundV1__factory as GyroFundV1Factory,
   GyroLib,
   GyroLib__factory as GyroLibFactory,
-} from "@gyrostable/core/typechain";
+} from "@gyrostable/core";
 import {
   BigNumber,
   BigNumberish,
@@ -14,11 +14,12 @@ import {
   providers,
   Signer,
 } from "ethers";
-import contracts from "./contracts";
+import { deployment } from "@gyrostable/core";
 import { Address, InputCoin, MintResult, MonetaryAmount, Token } from "./types";
 import { parseLogs } from "./utils";
 
 export const DECIMALS = 18;
+const contracts = deployment.contracts;
 
 /**
  * Main entrypoint to communicate with the Gyro protocol
