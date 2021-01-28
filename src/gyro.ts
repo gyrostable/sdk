@@ -95,6 +95,19 @@ export default class Gyro {
   }
 
   /**
+   * Estimates how much Gyro can be minted given `inputs`
+   *
+   * @param inputs an array of input coins to be used for minting
+   * @return the expected amount of Gyro to be minted for `inputs`
+   */
+  async estimateMinted(inputs: InputCoin[]): Promise<MonetaryAmount> {
+    const tokensIn = inputs.map((i) => i.token);
+    const amountsIn = inputs.map((i) => this.numberFromInputAmount(i.amount));
+    const amount = await this.gyroLib.estimateUnderlyingTokens(tokensIn, amountsIn);
+    return new MonetaryAmount(amount, DECIMALS);
+  }
+
+  /**
    * Returns the Gyro balance of the current user
    *
    * @returns balance of the user as a `MonetaryAmount`
