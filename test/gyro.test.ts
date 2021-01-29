@@ -21,10 +21,11 @@ describe("Gyro", () => {
         { token: contracts.WETHERC20.address, amount: BigNumber.from(10).pow(18).mul(2) },
       ];
       const balanceBefore = (await gyro.balance()).value;
-      const mintResult = await gyro.mint(inputs);
+      const mintResponse = await gyro.mint(inputs);
       const balanceAfter = (await gyro.balance()).value;
+      const mintResult = await mintResponse.wait();
       expect(mintResult.amountMinted.isZero()).to.be.false;
-      expect(balanceAfter.sub(balanceBefore).eq(mintResult.amountMinted)).to.be.true;
+      expect(balanceAfter.sub(balanceBefore).eq(mintResult.amountMinted.value)).to.be.true;
     });
   });
 
