@@ -1,6 +1,6 @@
 import { expect } from "chai";
 import { BigNumber } from "ethers";
-import { MonetaryAmount } from "../src/types";
+import MonetaryAmount from "../src/monetary-amount";
 
 describe("types", () => {
   describe("MonetaryAmount", () => {

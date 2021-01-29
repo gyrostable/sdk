@@ -28,6 +28,7 @@
   },
   "dependencies": {
     "ethers": "5.0.26",
+    "immer": "^8.0.1",
     "lodash": "^4.17.20"
   }
 }

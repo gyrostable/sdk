@@ -1,4 +1,5 @@
 import {
+  deployment,
   ERC20,
   ERC20__factory as ERC20Factory,
   GyroFund,
@@ -14,11 +15,12 @@ import {
   providers,
   Signer,
 } from "ethers";
-import { deployment } from "@gyrostable/core";
-import { Address, InputCoin, MintResult, MonetaryAmount, Token } from "./types";
+import { DECIMALS } from "./constants";
+import { Address, InputCoin, MintResult, Token } from "./types";
+import MonetaryAmount from "./monetary-amount";
 import { parseLogs } from "./utils";
+import { MintTransactionResponse } from "./responses";
 
-export const DECIMALS = 18;
 const contracts = deployment.contracts;
 
 /**
@@ -75,23 +77,15 @@ export default class Gyro {
    */
   async mint(
     inputs: InputCoin[],
-    minMinted: number = 0,
+    minMinted: MonetaryAmount = MonetaryAmount.fromNormalized(0),
     approveFuture: boolean = true
-  ): Promise<MintResult> {
+  ): Promise<MintTransactionResponse> {
     const approveTxs = await this.approveTokensForLib(inputs, approveFuture);
     const tokensIn = inputs.map((i) => i.token);
     const amountsIn = inputs.map((i) => this.numberFromInputAmount(i.amount));
 
-    const tx = await this.gyroLib.mintFromUnderlyingTokens(tokensIn, amountsIn, minMinted);
-    const allTxs = [tx].concat(approveTxs).map((t) => t.wait());
-
-    return Promise.all(allTxs).then(([mintReceipt, ...approveReceipts]) => {
-      return {
-        amountMinted: this.extractMintedAmount(mintReceipt),
-        mintReceipt,
-        approveReceipts,
-      };
-    });
+    const tx = await this.gyroLib.mintFromUnderlyingTokens(tokensIn, amountsIn, minMinted.value);
+    return new MintTransactionResponse(tx, approveTxs);
   }
 
   /**
@@ -163,12 +157,6 @@ export default class Gyro {
     );
   }
 
-  private extractMintedAmount(mintReceipt: ContractReceipt): BigNumber {
-    const events = parseLogs(mintReceipt, this.gyroLib.interface, this.gyroFund.interface);
-    const mintEvent = events.find((evt) => evt.name === "Mint");
-    return mintEvent ? mintEvent.args.amount : BigNumber.from(0);
-  }
-
   private async approveTokensForLib(
     inputs: InputCoin[],
     approveFuture: boolean = true
@@ -180,10 +168,12 @@ export default class Gyro {
 
     const approvePromises = [];
     for (let i = 0; i < ercs.length; i++) {
-      if (allowances[i] < inputs[i].amount) {
+      const inputAmount = this.numberFromInputAmount(inputs[i].amount);
+
+      if (allowances[i].lt(inputAmount)) {
         const approveAmount = approveFuture
           ? BigNumber.from(10).pow(50)
-          : this.numberFromInputAmount(inputs[i].amount);
+          : this.numberFromInputAmount(inputAmount);
         approvePromises.push(ercs[i].approve(this.gyroLib.address, approveAmount));
       }
     }
