@@ -166,7 +166,7 @@ export default class Gyro {
       ercs.map((erc) => erc.allowance(this._address, this.gyroLib.address))
     );
 
-    const approvePromises = [];
+    const approveTxs: ContractTransaction[] = [];
     for (let i = 0; i < ercs.length; i++) {
       const inputAmount = this.numberFromInputAmount(inputs[i].amount);
 
@@ -174,10 +174,11 @@ export default class Gyro {
         const approveAmount = approveFuture
           ? BigNumber.from(10).pow(50)
           : this.numberFromInputAmount(inputAmount);
-        approvePromises.push(ercs[i].approve(this.gyroLib.address, approveAmount));
+        const tx = await ercs[i].approve(this.gyroLib.address, approveAmount);
+        approveTxs.push(tx);
       }
     }
-    return Promise.all(approvePromises);
+    return approveTxs;
   }
 
   private numberFromInputAmount(amount: BigNumberish | MonetaryAmount): BigNumber {
