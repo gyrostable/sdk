@@ -1,8 +1,7 @@
 import { GyroFundV1__factory, GyroLib__factory } from "@gyrostable/core";
-import { BigNumber, ContractReceipt, ContractTransaction } from "ethers";
-import { Interface } from "ethers/lib/utils";
+import { ContractReceipt, ContractTransaction } from "ethers";
 import { MonetaryAmount } from ".";
-import { parseLogs } from "./utils";
+import { extractEventValue } from "./utils";
 
 export interface MintResult {
   amountMinted: MonetaryAmount;
@@ -10,27 +9,38 @@ export interface MintResult {
   approveReceipts: ContractReceipt[];
 }
 
+export interface RedeemResult {
+  amountRedeemed: MonetaryAmount;
+  redeemReceipt: ContractReceipt;
+}
+
+const contractInterfaces = [GyroLib__factory, GyroFundV1__factory].map((f) => new f().interface);
+
 export class MintTransactionResponse {
-  private contractInterfaces: Interface[];
-  constructor(readonly tx: ContractTransaction, readonly approveTxs: ContractTransaction[]) {
-    this.contractInterfaces = [GyroLib__factory, GyroFundV1__factory].map((f) => new f().interface);
-  }
+  constructor(readonly tx: ContractTransaction, readonly approveTxs: ContractTransaction[]) {}
 
   async wait(confirmations?: number): Promise<MintResult> {
     const allTxs = [this.tx].concat(this.approveTxs).map((t) => t.wait(confirmations));
 
     const [mintReceipt, ...approveReceipts] = await Promise.all(allTxs);
+    const amount = extractEventValue(mintReceipt, "Mint", "amount", 0, ...contractInterfaces);
     return {
-      amountMinted: this.extractMintedAmount(mintReceipt),
+      amountMinted: new MonetaryAmount(amount),
       mintReceipt,
       approveReceipts,
     };
   }
+}
 
-  private extractMintedAmount(mintReceipt: ContractReceipt): MonetaryAmount {
-    const events = parseLogs(mintReceipt, ...this.contractInterfaces);
-    const mintEvent = events.find((evt) => evt.name === "Mint");
-    const amount = mintEvent ? mintEvent.args.amount : BigNumber.from(0);
-    return new MonetaryAmount(amount);
+export class RedeemTransactionResponse {
+  constructor(readonly tx: ContractTransaction) {}
+
+  async wait(confirmations?: number): Promise<RedeemResult> {
+    const redeemReceipt = await this.tx.wait(confirmations);
+    const amount = extractEventValue(redeemReceipt, "Redeem", "amount", 0, ...contractInterfaces);
+    return {
+      amountRedeemed: new MonetaryAmount(amount),
+      redeemReceipt,
+    };
   }
 }

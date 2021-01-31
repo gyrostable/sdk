@@ -4,7 +4,7 @@ import MonetaryAmount from "./monetary-amount";
 export type Optional<T> = T | null;
 export type Address = string;
 
-export interface InputCoin {
+export interface TokenWithAmount {
   token: Address;
   amount: BigNumberish | MonetaryAmount;
 }

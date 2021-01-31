@@ -7,19 +7,11 @@ import {
   GyroLib,
   GyroLib__factory as GyroLibFactory,
 } from "@gyrostable/core";
-import {
-  BigNumber,
-  BigNumberish,
-  ContractReceipt,
-  ContractTransaction,
-  providers,
-  Signer,
-} from "ethers";
+import { BigNumber, BigNumberish, ContractTransaction, providers, Signer } from "ethers";
 import { DECIMALS } from "./constants";
-import { Address, InputCoin, MintResult, Token } from "./types";
 import MonetaryAmount from "./monetary-amount";
-import { parseLogs } from "./utils";
-import { MintTransactionResponse } from "./responses";
+import { MintTransactionResponse, RedeemTransactionResponse } from "./responses";
+import { Address, TokenWithAmount, Token } from "./types";
 
 const contracts = deployment.contracts;
 
@@ -70,22 +62,47 @@ export default class Gyro {
   /**
    * Mints at lest `minMinted` Gyro given `inputs`
    *
-   * @param inputs an array of input coins to be used for minting
+   * @param inputs an array of input tokens to be used for minting
    * @param minMinted the minimum amount of Gyro to be minted, to let the caller decide on maximum slippage
    * @param approveFuture whether to approve the library to transfer the minimum amount to mint
    *                      or a large amount to avoid needing to approve again for future mints
    */
   async mint(
-    inputs: InputCoin[],
+    inputs: TokenWithAmount[],
     minMinted: MonetaryAmount = MonetaryAmount.fromNormalized(0),
     approveFuture: boolean = true
   ): Promise<MintTransactionResponse> {
     const approveTxs = await this.approveTokensForLib(inputs, approveFuture);
     const tokensIn = inputs.map((i) => i.token);
-    const amountsIn = inputs.map((i) => this.numberFromInputAmount(i.amount));
+    const amountsIn = inputs.map((i) => this.numberFromTokenAmount(i.amount));
 
     const tx = await this.gyroLib.mintFromUnderlyingTokens(tokensIn, amountsIn, minMinted.value);
     return new MintTransactionResponse(tx, approveTxs);
+  }
+
+  /**
+   * Mints at lest `minMinted` Gyro given `inputs`
+   *
+   * @param outputs an array of  tokens to redeem to
+   * @param maxRedeemed the minimum amount of Gyro to be minted, to let the caller decide on maximum slippage
+   * @param approveFuture whether to approve the library to transfer the minimum amount to mint
+   *                      or a large amount to avoid needing to approve again for future mints
+   */
+  async redeem(
+    outputs: TokenWithAmount[],
+    maxRedeemed: MonetaryAmount = MonetaryAmount.fromNormalized(0)
+  ): Promise<RedeemTransactionResponse> {
+    const tokensOut = outputs.map((i) => i.token);
+    const amountsOut = outputs.map((i) => this.numberFromTokenAmount(i.amount));
+
+    // TODO: use actual functionality
+
+    const tx = await this.gyroLib.mintFromUnderlyingTokens(
+      tokensOut,
+      amountsOut,
+      maxRedeemed.value
+    );
+    return new RedeemTransactionResponse(tx);
   }
 
   /**
@@ -94,9 +111,9 @@ export default class Gyro {
    * @param inputs an array of input coins to be used for minting
    * @return the expected amount of Gyro to be minted for `inputs`
    */
-  async estimateMinted(inputs: InputCoin[]): Promise<MonetaryAmount> {
+  async estimateMinted(inputs: TokenWithAmount[]): Promise<MonetaryAmount> {
     const tokensIn = inputs.map((i) => i.token);
-    const amountsIn = inputs.map((i) => this.numberFromInputAmount(i.amount));
+    const amountsIn = inputs.map((i) => this.numberFromTokenAmount(i.amount));
     const amount = await this.gyroLib.estimateUnderlyingTokens(tokensIn, amountsIn);
     return new MonetaryAmount(amount, DECIMALS);
   }
@@ -158,7 +175,7 @@ export default class Gyro {
   }
 
   private async approveTokensForLib(
-    inputs: InputCoin[],
+    inputs: TokenWithAmount[],
     approveFuture: boolean = true
   ): Promise<ContractTransaction[]> {
     const ercs = inputs.map((i) => ERC20Factory.connect(i.token, this.signer));
@@ -168,12 +185,12 @@ export default class Gyro {
 
     const approveTxs: ContractTransaction[] = [];
     for (let i = 0; i < ercs.length; i++) {
-      const inputAmount = this.numberFromInputAmount(inputs[i].amount);
+      const inputAmount = this.numberFromTokenAmount(inputs[i].amount);
 
       if (allowances[i].lt(inputAmount)) {
         const approveAmount = approveFuture
           ? BigNumber.from(10).pow(50)
-          : this.numberFromInputAmount(inputAmount);
+          : this.numberFromTokenAmount(inputAmount);
         const tx = await ercs[i].approve(this.gyroLib.address, approveAmount);
         approveTxs.push(tx);
       }
@@ -181,7 +198,7 @@ export default class Gyro {
     return approveTxs;
   }
 
-  private numberFromInputAmount(amount: BigNumberish | MonetaryAmount): BigNumber {
+  private numberFromTokenAmount(amount: BigNumberish | MonetaryAmount): BigNumber {
     if (amount instanceof MonetaryAmount) {
       return amount.value;
     } else {

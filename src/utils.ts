@@ -31,3 +31,15 @@ export function parseLogs(
     })
     .filter(notEmpty);
 }
+
+export function extractEventValue<T>(
+  receipt: ContractReceipt,
+  eventName: string,
+  valueName: string,
+  defaultValue: T,
+  ...contractInterfaces: ethers.utils.Interface[]
+): T {
+  const events = parseLogs(receipt, ...contractInterfaces);
+  const event = events.find((evt) => evt.name === eventName);
+  return event ? event.args[valueName] : defaultValue;
+}
