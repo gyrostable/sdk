@@ -156,6 +156,7 @@ export default class Gyro {
 
   async getSupportedTokens(): Promise<Token[]> {
     const supportedAddresses = await this.getSupportedTokensAddresses();
+    console.log(supportedAddresses);
     return Promise.all(
       supportedAddresses.map(async (address) => {
         const contract = ERC20Factory.connect(address, this.signer);
