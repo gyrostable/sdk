@@ -12,6 +12,7 @@ export interface MintResult {
 export interface RedeemResult {
   amountRedeemed: MonetaryAmount;
   redeemReceipt: ContractReceipt;
+  approveReceipt: ContractReceipt;
 }
 
 const contractInterfaces = [GyroLib__factory, GyroFundV1__factory].map((f) => new f().interface);
@@ -33,14 +34,16 @@ export class MintTransactionResponse {
 }
 
 export class RedeemTransactionResponse {
-  constructor(readonly tx: ContractTransaction) {}
+  constructor(readonly tx: ContractTransaction, readonly approveTx: ContractTransaction) {}
 
   async wait(confirmations?: number): Promise<RedeemResult> {
-    const redeemReceipt = await this.tx.wait(confirmations);
+    const allTxs = [this.tx, this.approveTx].map((t) => t.wait(confirmations));
+    const [redeemReceipt, approveReceipt] = await Promise.all(allTxs);
     const amount = extractEventValue(redeemReceipt, "Redeem", "amount", 0, ...contractInterfaces);
     return {
       amountRedeemed: new MonetaryAmount(amount),
       redeemReceipt,
+      approveReceipt,
     };
   }
 }

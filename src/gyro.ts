@@ -81,28 +81,30 @@ export default class Gyro {
   }
 
   /**
-   * Mints at lest `minMinted` Gyro given `inputs`
+   * Reddem at most `maxRedeemed` Gyro into given `outputs`
    *
-   * @param outputs an array of  tokens to redeem to
-   * @param maxRedeemed the minimum amount of Gyro to be minted, to let the caller decide on maximum slippage
+   * @param ouputs an array of input tokens to be used for minting
+   * @param maxRedeemed the maximum amount of Gyro to be redeemed, to let the caller decide on maximum slippage
    * @param approveFuture whether to approve the library to transfer the minimum amount to mint
    *                      or a large amount to avoid needing to approve again for future mints
    */
   async redeem(
     outputs: TokenWithAmount[],
-    maxRedeemed: MonetaryAmount = MonetaryAmount.fromNormalized(0)
+    maxRedeemed: MonetaryAmount = MonetaryAmount.fromNormalized(0),
+    approveFuture: boolean = true
   ): Promise<RedeemTransactionResponse> {
-    const tokensOut = outputs.map((i) => i.token);
-    const amountsOut = outputs.map((i) => this.numberFromTokenAmount(i.amount));
+    const approveAmount = approveFuture ? BigNumber.from(10).pow(50) : maxRedeemed.value;
+    const approveTx = await this.gyroFund.approve(this.gyroLib.address, approveAmount);
 
-    // TODO: use actual functionality
+    const tokensOut = outputs.map((o) => o.token);
+    const amountsOut = outputs.map((o) => this.numberFromTokenAmount(o.amount));
 
-    const tx = await this.gyroLib.mintFromUnderlyingTokens(
+    const tx = await this.gyroLib.redeemToUnderlyingTokens(
       tokensOut,
       amountsOut,
       maxRedeemed.value
     );
-    return new RedeemTransactionResponse(tx);
+    return new RedeemTransactionResponse(tx, approveTx);
   }
 
   /**
@@ -114,7 +116,20 @@ export default class Gyro {
   async estimateMinted(inputs: TokenWithAmount[]): Promise<MonetaryAmount> {
     const tokensIn = inputs.map((i) => i.token);
     const amountsIn = inputs.map((i) => this.numberFromTokenAmount(i.amount));
-    const amount = await this.gyroLib.estimateUnderlyingTokens(tokensIn, amountsIn);
+    const amount = await this.gyroLib.estimateMintedGyro(tokensIn, amountsIn);
+    return new MonetaryAmount(amount, DECIMALS);
+  }
+
+  /**
+   * Estimates how much Gyro can will be redeemed given `inputs`
+   *
+   * @param outputs an array of input coins to be used for minting
+   * @return the expected amount of Gyro to be minted for `outputs`
+   */
+  async estimateRedeemed(outputs: TokenWithAmount[]): Promise<MonetaryAmount> {
+    const tokensOut = outputs.map((o) => o.token);
+    const amountsOut = outputs.map((o) => this.numberFromTokenAmount(o.amount));
+    const amount = await this.gyroLib.estimateRedeemedGyro(tokensOut, amountsOut);
     return new MonetaryAmount(amount, DECIMALS);
   }
 
