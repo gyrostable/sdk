@@ -1,4 +1,5 @@
 import { BigNumber, BigNumberish } from "ethers";
+import { round } from "lodash";
 import { DECIMALS } from "./constants";
 
 /**
@@ -107,6 +108,20 @@ export default class MonetaryAmount {
    */
   lte(other: BigNumberish | MonetaryAmount): boolean {
     return this.compare(other) <= 0;
+  }
+
+  /**
+   * Multiplies `MonetaryAmount` with `value`
+   * @param value number with which to multiply
+   * @returns the multiplication result
+   */
+  mul(value: number): MonetaryAmount {
+    if (Math.round(value) === value) {
+      return new MonetaryAmount(this.value.mul(value), this.decimals);
+    }
+    const rounded = Math.round(value * Math.pow(10, this.decimals));
+    const result = this.value.mul(rounded).div(BigNumber.from(10).pow(this.decimals));
+    return new MonetaryAmount(result, this.decimals);
   }
 
   /**

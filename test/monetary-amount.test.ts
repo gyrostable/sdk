@@ -28,5 +28,13 @@ describe("types", () => {
         expect(new MonetaryAmount(million, 3).toNormalizedString()).to.eq("1000");
       });
     });
+
+    describe("mul", () => {
+      it("should multiply the monetary amount with a number", () => {
+        expect(new MonetaryAmount(million, 3).mul(2).toNormalizedNumber()).to.eq(2000);
+        expect(new MonetaryAmount(million, 3).mul(0.5).toNormalizedNumber()).to.eq(500);
+        expect(new MonetaryAmount(million, 3).mul(0.15).toNormalizedNumber()).to.eq(150);
+      });
+    });
   });
 });
