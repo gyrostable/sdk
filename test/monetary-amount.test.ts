@@ -34,6 +34,8 @@ describe("types", () => {
         expect(new MonetaryAmount(million, 3).mul(2).toNormalizedNumber()).to.eq(2000);
         expect(new MonetaryAmount(million, 3).mul(0.5).toNormalizedNumber()).to.eq(500);
         expect(new MonetaryAmount(million, 3).mul(0.15).toNormalizedNumber()).to.eq(150);
+        const hundred18 = BigNumber.from(100).mul(BigNumber.from(10).pow(18));
+        expect(new MonetaryAmount(hundred18, 18).mul(99.5).toNormalizedNumber()).to.eq(9950);
       });
     });
   });

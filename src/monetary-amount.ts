@@ -119,7 +119,7 @@ export default class MonetaryAmount {
     if (Math.round(value) === value) {
       return new MonetaryAmount(this.value.mul(value), this.decimals);
     }
-    const rounded = Math.round(value * Math.pow(10, this.decimals));
+    const rounded = Math.round(value * Math.pow(10, this.decimals)).toString();
     const result = this.value.mul(rounded).div(BigNumber.from(10).pow(this.decimals));
     return new MonetaryAmount(result, this.decimals);
   }
