@@ -11,7 +11,7 @@ import { BigNumber, BigNumberish, ContractTransaction, providers, Signer } from 
 import { DECIMALS } from "./constants";
 import MonetaryAmount from "./monetary-amount";
 import { MintTransactionResponse, RedeemTransactionResponse } from "./responses";
-import { Address, TokenWithAmount, Token } from "./types";
+import { Address, TokenWithAmount, Token, Optional } from "./types";
 
 const contracts = deployment.contracts;
 
@@ -94,7 +94,12 @@ export default class Gyro {
     approveFuture: boolean = true
   ): Promise<RedeemTransactionResponse> {
     const approveAmount = approveFuture ? BigNumber.from(10).pow(50) : maxRedeemed.value;
-    const approveTx = await this.gyroFund.approve(this.gyroLib.address, approveAmount);
+    const approved = await this.gyroFund.allowance(this._address, this.gyroLib.address);
+    let approveTx: Optional<ContractTransaction> = null;
+
+    if (approved.lt(maxRedeemed.value)) {
+      approveTx = await this.gyroFund.approve(this.gyroLib.address, approveAmount);
+    }
 
     const tokensOut = outputs.map((o) => o.token);
     const amountsOut = outputs.map((o) => this.numberFromTokenAmount(o.amount));
@@ -171,7 +176,6 @@ export default class Gyro {
 
   async getSupportedTokens(): Promise<Token[]> {
     const supportedAddresses = await this.getSupportedTokensAddresses();
-    console.log(supportedAddresses);
     return Promise.all(
       supportedAddresses.map(async (address) => {
         const contract = ERC20Factory.connect(address, this.signer);

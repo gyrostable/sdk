@@ -1,6 +1,7 @@
 import { GyroFundV1__factory, GyroLib__factory } from "@gyrostable/core";
 import { ContractReceipt, ContractTransaction } from "ethers";
-import { MonetaryAmount } from ".";
+import MonetaryAmount from "./monetary-amount";
+import { Optional } from "./types";
 import { extractEventValue } from "./utils";
 
 export interface MintResult {
@@ -12,7 +13,7 @@ export interface MintResult {
 export interface RedeemResult {
   amountRedeemed: MonetaryAmount;
   redeemReceipt: ContractReceipt;
-  approveReceipt: ContractReceipt;
+  approveReceipt: Optional<ContractReceipt>;
 }
 
 const contractInterfaces = [GyroLib__factory, GyroFundV1__factory].map((f) => new f().interface);
@@ -34,11 +35,18 @@ export class MintTransactionResponse {
 }
 
 export class RedeemTransactionResponse {
-  constructor(readonly tx: ContractTransaction, readonly approveTx: ContractTransaction) {}
+  constructor(
+    readonly tx: ContractTransaction,
+    readonly approveTx: Optional<ContractTransaction>
+  ) {}
 
   async wait(confirmations?: number): Promise<RedeemResult> {
-    const allTxs = [this.tx, this.approveTx].map((t) => t.wait(confirmations));
-    const [redeemReceipt, approveReceipt] = await Promise.all(allTxs);
+    const allTxs = [this.tx];
+    if (this.approveTx) {
+      allTxs.push(this.approveTx);
+    }
+    const allReceipts = allTxs.map((t) => t.wait(confirmations));
+    const [redeemReceipt, approveReceipt] = await Promise.all(allReceipts);
     const amount = extractEventValue(redeemReceipt, "Redeem", "amount", 0, ...contractInterfaces);
     return {
       amountRedeemed: new MonetaryAmount(amount),
