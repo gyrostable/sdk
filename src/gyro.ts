@@ -11,9 +11,9 @@ import { BigNumber, BigNumberish, ContractTransaction, providers, Signer } from 
 import { DECIMALS } from "./constants";
 import MonetaryAmount from "./monetary-amount";
 import { MintTransactionResponse, RedeemTransactionResponse } from "./responses";
-import { Address, TokenWithAmount, Token, Optional } from "./types";
+import { Address, Optional, Token, TokenWithAmount } from "./types";
 
-const contracts = deployment.contracts;
+const { networks } = deployment;
 
 /**
  * Main entrypoint to communicate with the Gyro protocol
@@ -23,6 +23,21 @@ export default class Gyro {
   private signer: Signer;
   private gyroFund: GyroFund;
   private gyroLib: GyroLib;
+
+  private static async getAddresses(
+    provider: providers.JsonRpcProvider
+  ): Promise<Record<string, string>> {
+    const network = await provider.getNetwork();
+    switch (network.chainId) {
+      case 1337:
+      case 31337:
+        return networks.localhost;
+      case 42:
+        return networks.kovan;
+      default:
+        throw new Error(`network ${network.chainId} not supported`);
+    }
+  }
 
   /**
    * Creates a new `Gyro` instance
@@ -35,13 +50,18 @@ export default class Gyro {
     if (!address) {
       address = await provider.getSigner().getAddress();
     }
-    return new Gyro(provider, address);
+    const contractAddresses = await this.getAddresses(provider);
+    return new Gyro(provider, address, contractAddresses);
   }
 
-  private constructor(private provider: providers.JsonRpcProvider, private _address: Address) {
+  private constructor(
+    private provider: providers.JsonRpcProvider,
+    private _address: Address,
+    contractAddresses: Record<string, string>
+  ) {
     this.signer = provider.getSigner(_address);
-    this.gyroFund = GyroFundV1Factory.connect(contracts.GyroFundV1.address, this.signer);
-    this.gyroLib = GyroLibFactory.connect(contracts.GyroLib.address, this.signer);
+    this.gyroFund = GyroFundV1Factory.connect(contractAddresses.GyroFundV1, this.signer);
+    this.gyroLib = GyroLibFactory.connect(contractAddresses.GyroLib, this.signer);
   }
 
   get address(): Address {

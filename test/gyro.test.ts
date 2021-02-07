@@ -4,7 +4,7 @@ import { deployment } from "@gyrostable/core";
 import { expect } from "chai";
 import { isAddress } from "ethers/lib/utils";
 
-const contracts = deployment.contracts;
+const contracts = deployment.networks.localhost;
 
 describe("Gyro", () => {
   let gyro: Gyro;
@@ -17,8 +17,8 @@ describe("Gyro", () => {
   describe("mint", () => {
     it("should mint Gyro", async () => {
       const inputs = [
-        { token: contracts.DAIERC20.address, amount: BigNumber.from(10).pow(18).mul(2500) },
-        { token: contracts.WETHERC20.address, amount: BigNumber.from(10).pow(18).mul(2) },
+        { token: contracts.DAIERC20, amount: BigNumber.from(10).pow(18).mul(2500) },
+        { token: contracts.WETHERC20, amount: BigNumber.from(10).pow(18).mul(2) },
       ];
       const balanceBefore = (await gyro.balance()).value;
       const mintResponse = await gyro.mint(inputs);
