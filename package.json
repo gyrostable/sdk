@@ -1,6 +1,6 @@
 {
   "name": "@gyrostable/sdk",
-  "license": "UNLICENSED",
+  "license": "MIT",
   "main": "./dist/gyro-sdk.bundle.js",
   "types": "./dist/src/index.d.ts",
   "devDependencies": {
@@ -29,8 +29,8 @@
     "printWidth": 100
   },
   "dependencies": {
+    "@gyrostable/core": "^0.1.2",
     "ethers": "5.0.26",
-    "immer": "^8.0.1",
     "lodash": "^4.17.20"
   }
 }
