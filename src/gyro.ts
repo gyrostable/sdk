@@ -11,7 +11,11 @@ import { BigNumber, BigNumberish, ContractTransaction, providers, Signer } from 
 import { DECIMALS } from "./constants";
 import MonetaryAmount from "./monetary-amount";
 import { MintTransactionResponse, RedeemTransactionResponse } from "./responses";
+<<<<<<< HEAD
 import { Address, Optional, Reserve, Token, TokenWithAmount } from "./types";
+=======
+import { Address, Optional, Token, TokenWithAmount, Reserve } from "./types";
+>>>>>>> 5a3eb29 (First commit)
 
 const { networks } = deployment;
 
@@ -101,7 +105,7 @@ export default class Gyro {
   }
 
   /**
-   * Reddem at most `maxRedeemed` Gyro into given `outputs`
+   * Redeem at most `maxRedeemed` Gyro into given `outputs`
    *
    * @param ouputs an array of input tokens to be used for minting
    * @param maxRedeemed the maximum amount of Gyro to be redeemed, to let the caller decide on maximum slippage
@@ -184,9 +188,13 @@ export default class Gyro {
    * @param token ERC20 token for which to retrieve balance
    * @returns balance of the user as a `MonetaryAmount`
    */
-  async tokenBalance(token: Address | Token): Promise<MonetaryAmount> {
+  async tokenBalance(token: Address | Token, address?: Address): Promise<MonetaryAmount> {
     let contract: ERC20;
     let decimals: number;
+    
+    if (!address) {
+      address = this.address;
+    }
 
     if (typeof token === "string") {
       contract = ERC20Factory.connect(token, this.signer);
@@ -202,6 +210,10 @@ export default class Gyro {
 
   getSupportedTokensAddresses(): Promise<Address[]> {
     return this.gyroLib.getSupportedTokens();
+  }
+
+  get fundAddress(): Address {
+    return this.gyroFund.address;
   }
 
   async getSupportedTokens(): Promise<Token[]> {
