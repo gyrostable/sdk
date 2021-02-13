@@ -169,6 +169,16 @@ export default class Gyro {
   }
 
   /**
+   * Returns the total supply of Gyro in circulation
+   *
+   * @returns total supply of Gyro as a `MonetaryAmount`
+   */
+  async totalSupply(): Promise<MonetaryAmount> {
+    const totalSupply = await this.gyroFund.totalSupply();
+    return new MonetaryAmount(totalSupply, DECIMALS);
+  }
+
+  /**
    * Returns the balance of `token` of the current user
    *
    * @param token ERC20 token for which to retrieve balance
