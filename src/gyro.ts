@@ -11,7 +11,7 @@ import { BigNumber, BigNumberish, ContractTransaction, providers, Signer } from 
 import { DECIMALS } from "./constants";
 import MonetaryAmount from "./monetary-amount";
 import { MintTransactionResponse, RedeemTransactionResponse } from "./responses";
-import { Address, Optional, Token, TokenWithAmount } from "./types";
+import { Address, Optional, Reserve, Token, TokenWithAmount } from "./types";
 
 const { networks } = deployment;
 
@@ -222,6 +222,22 @@ export default class Gyro {
         };
       })
     );
+  }
+
+
+  async getReserveValues(): Promise<Reserve[]>  {
+    const [errorCodes, addresses, amounts] = await this.gyroLib.getReserveValues();
+    const reserve: Reserve[] = [];
+
+    for (let i = 0; i < addresses.length; i++) {
+      const errorCode = errorCodes[i];
+      const address = addresses[i];
+      const amount = new MonetaryAmount(amounts[i], 18);
+
+      reserve.push({errorCode, address, amount})
+    }
+
+    return reserve
   }
 
   private async approveTokensForLib(
