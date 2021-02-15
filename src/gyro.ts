@@ -11,11 +11,7 @@ import { BigNumber, BigNumberish, ContractTransaction, providers, Signer } from 
 import { DECIMALS } from "./constants";
 import MonetaryAmount from "./monetary-amount";
 import { MintTransactionResponse, RedeemTransactionResponse } from "./responses";
-<<<<<<< HEAD
 import { Address, Optional, Reserve, Token, TokenWithAmount } from "./types";
-=======
-import { Address, Optional, Token, TokenWithAmount, Reserve } from "./types";
->>>>>>> 5a3eb29 (First commit)
 
 const { networks } = deployment;
 
