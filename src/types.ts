@@ -21,3 +21,9 @@ export interface Token {
   symbol: string;
   decimals: number;
 }
+
+export interface Reserve {
+  errorCode: Number;
+  address: Address;
+  amount: MonetaryAmount;
+}
