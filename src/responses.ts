@@ -1,5 +1,4 @@
-import { GyroFundV1__factory, GyroLib__factory } from "@gyrostable/core";
-import { ContractFactory, ContractReceipt, ContractTransaction } from "ethers";
+import { ContractReceipt, ContractTransaction } from "ethers";
 import MonetaryAmount from "./monetary-amount";
 import { Optional } from "./types";
 import { extractEventValue } from "./utils";

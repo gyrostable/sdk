@@ -23,7 +23,7 @@ export interface Token {
 }
 
 export interface Reserve {
-  errorCode: Number;
+  errorCode: BigNumber;
   address: Address;
   amount: MonetaryAmount;
 }

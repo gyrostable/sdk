@@ -3,6 +3,7 @@ import {
   ERC20,
   ERC20__factory as ERC20Factory,
   GyroFund,
+  GyroFundV1,
   GyroFundV1__factory as GyroFundV1Factory,
   GyroLib,
   GyroLib__factory as GyroLibFactory,
@@ -15,13 +16,15 @@ import { Address, Optional, Reserve, Token, TokenWithAmount } from "./types";
 
 const { networks } = deployment;
 
+const gasLimit: number = 3_000_000;
+
 /**
  * Main entrypoint to communicate with the Gyro protocol
  * Allows to easily mint and redeem Gyro tokens
  */
 export default class Gyro {
   private signer: Signer;
-  private gyroFund: GyroFund;
+  private gyroFund: GyroFundV1;
   private gyroLib: GyroLib;
 
   private static async getAddresses(
@@ -96,7 +99,9 @@ export default class Gyro {
     const tokensIn = inputs.map((i) => i.token);
     const amountsIn = inputs.map((i) => this.numberFromTokenAmount(i.amount));
 
-    const tx = await this.gyroLib.mintFromUnderlyingTokens(tokensIn, amountsIn, minMinted.value);
+    const tx = await this.gyroLib.mintFromUnderlyingTokens(tokensIn, amountsIn, minMinted.value, {
+      gasLimit,
+    });
     return new MintTransactionResponse(tx, approveTxs);
   }
 
@@ -127,7 +132,8 @@ export default class Gyro {
     const tx = await this.gyroLib.redeemToUnderlyingTokens(
       tokensOut,
       amountsOut,
-      maxRedeemed.value
+      maxRedeemed.value,
+      { gasLimit }
     );
     return new RedeemTransactionResponse(tx, approveTx);
   }
@@ -187,7 +193,7 @@ export default class Gyro {
   async tokenBalance(token: Address | Token, address?: Address): Promise<MonetaryAmount> {
     let contract: ERC20;
     let decimals: number;
-    
+
     if (!address) {
       address = this.address;
     }
@@ -232,20 +238,18 @@ export default class Gyro {
     );
   }
 
-
-  async getReserveValues(): Promise<Reserve[]>  {
-    const [errorCodes, addresses, amounts] = await this.gyroLib.getReserveValues();
+  async getReserveValues(): Promise<Reserve[]> {
+    const [errorCode, addresses, amounts] = await this.gyroLib.getReserveValues();
     const reserve: Reserve[] = [];
 
     for (let i = 0; i < addresses.length; i++) {
-      const errorCode = errorCodes[i];
       const address = addresses[i];
       const amount = new MonetaryAmount(amounts[i], 18);
 
-      reserve.push({errorCode, address, amount})
+      reserve.push({ errorCode, address, amount });
     }
 
-    return reserve
+    return reserve;
   }
 
   private async approveTokensForLib(

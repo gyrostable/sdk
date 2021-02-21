@@ -15,10 +15,11 @@ describe("Gyro", () => {
   });
 
   describe("mint", () => {
-    it("should mint Gyro", async () => {
+    it("should mint Gyro", async function () {
+      this.timeout(5000);
       const inputs = [
-        { token: contracts.DAIERC20, amount: BigNumber.from(10).pow(18).mul(2500) },
-        { token: contracts.WETHERC20, amount: BigNumber.from(10).pow(18).mul(2) },
+        { token: contracts["token-DAI"], amount: BigNumber.from(10).pow(18).mul(2500) },
+        { token: contracts["token-WETH"], amount: BigNumber.from(10).pow(18).mul(2) },
       ];
       const balanceBefore = (await gyro.balance()).value;
       const mintResponse = await gyro.mint(inputs);
@@ -38,11 +39,11 @@ describe("Gyro", () => {
   });
 
   describe("getSupportedTokens", () => {
-    it("should return all the tokens supported by gyro with their metadata", async () => {
+    it("should return all the tokens supported by gyro with their metadata", async function () {
       const tokens = await gyro.getSupportedTokens();
       expect(tokens).to.not.be.empty;
       expect(isAddress(tokens[0].address)).to.be.true;
-      const usdt = tokens.find((v) => v.symbol === "USDT")!!;
+      const usdt = tokens.find((v) => v.symbol === "USDC")!!;
       expect(usdt.decimals).to.eq(6);
 
       const dai = tokens.find((v) => v.symbol === "DAI")!!;
