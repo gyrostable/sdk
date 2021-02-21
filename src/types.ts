@@ -26,4 +26,6 @@ export interface Reserve {
   errorCode: BigNumber;
   address: Address;
   amount: MonetaryAmount;
+  tokens: string[];
+  tokenSymbols: string[];
 }

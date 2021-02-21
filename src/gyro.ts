@@ -1,8 +1,9 @@
 import {
+  BPool__factory,
   deployment,
   ERC20,
   ERC20__factory as ERC20Factory,
-  GyroFund,
+  ERC20__factory,
   GyroFundV1,
   GyroFundV1__factory as GyroFundV1Factory,
   GyroLib,
@@ -245,8 +246,12 @@ export default class Gyro {
     for (let i = 0; i < addresses.length; i++) {
       const address = addresses[i];
       const amount = new MonetaryAmount(amounts[i], 18);
+      const tokens = await BPool__factory.connect(address, this.signer).getFinalTokens();
+      const tokenSymbols = await Promise.all(
+        tokens.map((t) => ERC20__factory.connect(t, this.signer).symbol())
+      );
 
-      reserve.push({ errorCode, address, amount });
+      reserve.push({ errorCode, address, amount, tokens, tokenSymbols });
     }
 
     return reserve;
