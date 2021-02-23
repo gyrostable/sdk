@@ -17,7 +17,7 @@ import { Address, Optional, Reserve, Token, TokenWithAmount } from "./types";
 
 const { networks } = deployment;
 
-const gasLimit: number = 3_000_000;
+const gasLimit: number = 8_000_000;
 
 /**
  * Main entrypoint to communicate with the Gyro protocol
