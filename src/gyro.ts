@@ -64,7 +64,7 @@ export default class Gyro {
     contractAddresses: Record<string, string>
   ) {
     this.signer = provider.getSigner(_address);
-    this.gyroFund = GyroFundV1Factory.connect(contractAddresses.GyroFundV1, this.signer);
+    this.gyroFund = GyroFundV1Factory.connect(contractAddresses.GyroProxy, this.signer);
     this.gyroLib = GyroLibFactory.connect(contractAddresses.GyroLib, this.signer);
   }
 
