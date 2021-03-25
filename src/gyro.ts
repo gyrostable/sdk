@@ -8,6 +8,8 @@ import {
   GyroFundV1__factory as GyroFundV1Factory,
   GyroLib,
   GyroLib__factory as GyroLibFactory,
+  MetaFaucet,
+  MetaFaucet__factory,
 } from "@gyrostable/core";
 import { BigNumber, BigNumberish, ContractTransaction, providers, Signer } from "ethers";
 import { DECIMALS } from "./constants";
@@ -27,6 +29,7 @@ export default class Gyro {
   private signer: Signer;
   private gyroFund: GyroFundV1;
   private gyroLib: GyroLib;
+  private metaFaucet: MetaFaucet;
 
   private static async getAddresses(
     provider: providers.JsonRpcProvider
@@ -66,10 +69,15 @@ export default class Gyro {
     this.signer = provider.getSigner(_address);
     this.gyroFund = GyroFundV1Factory.connect(contractAddresses.GyroProxy, this.signer);
     this.gyroLib = GyroLibFactory.connect(contractAddresses.GyroLib, this.signer);
+    this.metaFaucet = MetaFaucet__factory.connect(contractAddresses.MetaFaucet, this.signer);
   }
 
   get address(): Address {
     return this._address;
+  }
+
+  async metaMintUnderlying(): Promise<ContractTransaction> {
+    return this.metaFaucet.mint();
   }
 
   /**

@@ -598,10 +598,10 @@
     "@ethersproject/properties" "^5.0.7"
     "@ethersproject/strings" "^5.0.8"
 
-"@gyrostable/core@^0.1.6":
-  version "0.1.6"
-  resolved "https://registry.yarnpkg.com/@gyrostable/core/-/core-0.1.6.tgz#82fc63b2f54b2b58cbd3b308128ce94eb9adbe14"
-  integrity sha512-jzUi17lgsqAI9wnYRnNt79TlCd3UUHNuOLMtt9cF9JXJypfJm5E7JNAw/W4HAkw2M9I3itvY4JHDbLTh8rLfSw==
+"@gyrostable/core@^0.1.7":
+  version "0.1.7"
+  resolved "https://registry.yarnpkg.com/@gyrostable/core/-/core-0.1.7.tgz#5189cb4cbd8c6d5920dea64410e5d7859311ce15"
+  integrity sha512-Rn84Lh4hNgV06ppKT4iawNYJspWIlQ2XqxT9KItU00p9Ta2u8P1VEtFjbo3ySZkqz6GJShKjylor+IXi+RgYfw==
   dependencies:
     "@openzeppelin/contracts-upgradeable" "^3.4.1"
 
