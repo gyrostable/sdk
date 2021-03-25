@@ -1,6 +1,6 @@
 {
   "name": "@gyrostable/sdk",
-  "version": "0.1.10",
+  "version": "0.1.11",
   "license": "MIT",
   "main": "./dist/gyro-sdk.bundle.js",
   "types": "./dist/src/index.d.ts",
@@ -33,7 +33,7 @@
     "printWidth": 100
   },
   "dependencies": {
-    "@gyrostable/core": "^0.1.8",
+    "@gyrostable/core": "^0.1.9",
     "ethers": "5.0.26",
     "lodash": "^4.17.20"
   }
