@@ -9,7 +9,9 @@ import {
   GyroLib,
   GyroLib__factory as GyroLibFactory,
   MetaFaucet,
-  MetaFaucet__factory,
+  MetaFaucet__factory as MetaFaucetFactory,
+  BPool,
+  BPool__factory as BPoolFactory,
 } from "@gyrostable/core";
 import { BigNumber, BigNumberish, ContractTransaction, providers, Signer } from "ethers";
 import { DECIMALS } from "./constants";
@@ -30,6 +32,7 @@ export default class Gyro {
   private gyroFund: GyroFundV1;
   private gyroLib: GyroLib;
   private metaFaucet: MetaFaucet;
+  private sAmm: BPool;
 
   private static async getAddresses(
     provider: providers.JsonRpcProvider
@@ -69,7 +72,8 @@ export default class Gyro {
     this.signer = provider.getSigner(_address);
     this.gyroFund = GyroFundV1Factory.connect(contractAddresses.GyroProxy, this.signer);
     this.gyroLib = GyroLibFactory.connect(contractAddresses.GyroLib, this.signer);
-    this.metaFaucet = MetaFaucet__factory.connect(contractAddresses.MetaFaucet, this.signer);
+    this.sAmm = BPoolFactory.connect(contractAddresses["pool-gyd_usdc"], this.signer);
+    this.metaFaucet = MetaFaucetFactory.connect(contractAddresses.MetaFaucet, this.signer);
   }
 
   get address(): Address {
@@ -78,6 +82,36 @@ export default class Gyro {
 
   async metaMintUnderlying(): Promise<ContractTransaction> {
     return this.metaFaucet.mint();
+  }
+
+  async hasProvidedGydToSamm(): Promise<boolean> {
+    const filter = this.sAmm.filters.LOG_JOIN(this.address, this.gyroFund.address, null);
+    const events = await this.sAmm.queryFilter(filter);
+    return events.length > 0;
+  }
+
+  async hasSwappedFromGydInSamm(): Promise<boolean> {
+    const filter = this.sAmm.filters.LOG_SWAP(
+      this.address,
+      this.gyroFund.address,
+      null,
+      null,
+      null
+    );
+    const events = await this.sAmm.queryFilter(filter);
+    return events.length > 0;
+  }
+
+  async hasSwappedToGydInSamm(): Promise<boolean> {
+    const filter = this.sAmm.filters.LOG_SWAP(
+      this.address,
+      null,
+      this.gyroFund.address,
+      null,
+      null
+    );
+    const events = await this.sAmm.queryFilter(filter);
+    return events.length > 0;
   }
 
   async hasMintedGyro(): Promise<boolean> {
