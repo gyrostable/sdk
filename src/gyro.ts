@@ -80,6 +80,18 @@ export default class Gyro {
     return this.metaFaucet.mint();
   }
 
+  async hasMintedGyro(): Promise<boolean> {
+    const filter = this.gyroLib.filters.Mint(this.address, null);
+    const events = await this.gyroLib.queryFilter(filter);
+    return events.length > 0;
+  }
+
+  async hasRedeemedGyro(): Promise<boolean> {
+    const filter = this.gyroLib.filters.Redeem(this.address, null);
+    const events = await this.gyroLib.queryFilter(filter);
+    return events.length > 0;
+  }
+
   /**
    * Changes the account used to access Gyro contract
    *
