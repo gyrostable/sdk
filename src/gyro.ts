@@ -1,4 +1,6 @@
 import {
+  BPool,
+  BPool__factory as BPoolFactory,
   BPool__factory,
   deployment,
   ERC20,
@@ -10,10 +12,9 @@ import {
   GyroLib__factory as GyroLibFactory,
   MetaFaucet,
   MetaFaucet__factory as MetaFaucetFactory,
-  BPool,
-  BPool__factory as BPoolFactory,
 } from "@gyrostable/core";
-import { BigNumber, BigNumberish, ContractTransaction, providers, Signer } from "ethers";
+import { BigNumber, BigNumberish, Contract, ContractTransaction, providers, Signer } from "ethers";
+import DSProxyRegistryABI from "../abis/DSProxyRegistry.json";
 import { DECIMALS } from "./constants";
 import MonetaryAmount from "./monetary-amount";
 import { MintTransactionResponse, RedeemTransactionResponse } from "./responses";
@@ -22,6 +23,9 @@ import { Address, Optional, Reserve, Token, TokenWithAmount } from "./types";
 const { networks } = deployment;
 
 const gasLimit: number = 8_000_000;
+
+// TODO: handle this properly
+const kovanDsProxyRegistry = "0x130767E0cf05469CF11Fa3fcf270dfC1f52b9072";
 
 /**
  * Main entrypoint to communicate with the Gyro protocol
@@ -33,6 +37,7 @@ export default class Gyro {
   private gyroLib: GyroLib;
   private metaFaucet: MetaFaucet;
   private sAmm: BPool;
+  private dsProxyRegistry: Contract;
 
   private static async getAddresses(
     provider: providers.JsonRpcProvider
@@ -74,10 +79,15 @@ export default class Gyro {
     this.gyroLib = GyroLibFactory.connect(contractAddresses.GyroLib, this.signer);
     this.sAmm = BPoolFactory.connect(contractAddresses["pool-gyd_usdc"], this.signer);
     this.metaFaucet = MetaFaucetFactory.connect(contractAddresses.MetaFaucet, this.signer);
+    this.dsProxyRegistry = new Contract(kovanDsProxyRegistry, DSProxyRegistryABI, this.signer);
   }
 
   get address(): Address {
     return this._address;
+  }
+
+  getBalancerProxyAddress(): Promise<Address> {
+    return this.dsProxyRegistry.proxies(this.address);
   }
 
   async metaMintUnderlying(): Promise<ContractTransaction> {
@@ -85,31 +95,22 @@ export default class Gyro {
   }
 
   async hasProvidedGydToSamm(): Promise<boolean> {
-    const filter = this.sAmm.filters.LOG_JOIN(this.address, this.gyroFund.address, null);
+    const address = await this.getBalancerProxyAddress();
+    const filter = this.sAmm.filters.LOG_JOIN(address, this.gyroFund.address, null);
     const events = await this.sAmm.queryFilter(filter);
     return events.length > 0;
   }
 
   async hasSwappedFromGydInSamm(): Promise<boolean> {
-    const filter = this.sAmm.filters.LOG_SWAP(
-      this.address,
-      this.gyroFund.address,
-      null,
-      null,
-      null
-    );
+    const address = await this.getBalancerProxyAddress();
+    const filter = this.sAmm.filters.LOG_SWAP(address, this.gyroFund.address, null, null, null);
     const events = await this.sAmm.queryFilter(filter);
     return events.length > 0;
   }
 
   async hasSwappedToGydInSamm(): Promise<boolean> {
-    const filter = this.sAmm.filters.LOG_SWAP(
-      this.address,
-      null,
-      this.gyroFund.address,
-      null,
-      null
-    );
+    const address = await this.getBalancerProxyAddress();
+    const filter = this.sAmm.filters.LOG_SWAP(address, null, this.gyroFund.address, null, null);
     const events = await this.sAmm.queryFilter(filter);
     return events.length > 0;
   }
