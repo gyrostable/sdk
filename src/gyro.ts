@@ -22,7 +22,8 @@ import { Address, Optional, Reserve, Token, TokenWithAmount } from "./types";
 
 const { networks } = deployment;
 
-const gasLimit: number = 8_000_000;
+const gasLimit: number = 2_000_000;
+const gasPrice: number = 1_000_000;
 
 // TODO: handle this properly
 const kovanDsProxyRegistry = "0x130767E0cf05469CF11Fa3fcf270dfC1f52b9072";
@@ -157,6 +158,7 @@ export default class Gyro {
 
     const tx = await this.gyroLib.mintFromUnderlyingTokens(tokensIn, amountsIn, minMinted.value, {
       gasLimit,
+      gasPrice,
     });
     return new MintTransactionResponse(tx, approveTxs);
   }
@@ -189,7 +191,7 @@ export default class Gyro {
       tokensOut,
       amountsOut,
       maxRedeemed.value,
-      { gasLimit }
+      { gasLimit, gasPrice }
     );
     return new RedeemTransactionResponse(tx, approveTx);
   }
@@ -329,7 +331,7 @@ export default class Gyro {
         const approveAmount = approveFuture
           ? BigNumber.from(10).pow(50)
           : this.numberFromTokenAmount(inputAmount);
-        const tx = await ercs[i].approve(this.gyroLib.address, approveAmount);
+        const tx = await ercs[i].approve(this.gyroLib.address, approveAmount, { gasPrice });
         approveTxs.push(tx);
       }
     }

@@ -1,6 +1,6 @@
 {
   "name": "@gyrostable/sdk",
-  "version": "0.1.16",
+  "version": "0.1.17",
   "license": "MIT",
   "main": "./dist/gyro-sdk.bundle.js",
   "types": "./dist/src/index.d.ts",
