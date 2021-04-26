@@ -20,6 +20,8 @@ import MonetaryAmount from "./monetary-amount";
 import { MintTransactionResponse, RedeemTransactionResponse } from "./responses";
 import { Address, Optional, Reserve, Token, TokenWithAmount } from "./types";
 
+import { ethers } from "ethers";
+
 const { networks } = deployment;
 
 const gasLimit: number = 2_000_000;
@@ -27,6 +29,13 @@ const gasPrice: number = 1_000_000;
 
 // TODO: handle this properly
 const kovanDsProxyRegistry = "0x130767E0cf05469CF11Fa3fcf270dfC1f52b9072";
+const TRANSFER = "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef";
+const USDC = "0x17d484e98402321551d39cf4a0050b18a343780f"
+
+const infuraKovanProvider = new ethers.providers.InfuraProvider("kovan", {
+  projectId: "",
+  projectSecret: "",
+});
 
 /**
  * Main entrypoint to communicate with the Gyro protocol
@@ -126,6 +135,40 @@ export default class Gyro {
     const filter = this.gyroLib.filters.Redeem(this.address, null);
     const events = await this.gyroLib.queryFilter(filter);
     return events.length > 0;
+  }
+
+  async getTxInfo(hash: string): Promise<any> {
+    const tx = await infuraKovanProvider.getTransactionReceipt(hash);
+    return tx;
+  }
+
+  getUSDCValue(txReceipt: any): Number {
+    var usdcValue = Number(0);
+    for (let txLogs of txReceipt.logs) {
+      if (txLogs.address.toLowerCase() == USDC && (txLogs.topics.indexOf(TRANSFER) == 0)) {
+          usdcValue += Number(txLogs.data);
+          break
+      }
+    }
+    return usdcValue;
+
+  }
+
+  async hasPerformedProfitableArb(firstTx: string, secondTx: string): Promise<boolean> {
+
+
+    const firstTxReceipt = await this.getTxInfo(firstTx);
+    const secondTxReceipt = await this.getTxInfo(secondTx);
+
+    const usdcInValue = this.getUSDCValue(firstTxReceipt);
+    const usdcOutValue = this.getUSDCValue(secondTxReceipt);
+
+    if (usdcOutValue > usdcInValue) {
+      return true;
+    } else {
+      return false;
+    }
+
   }
 
   /**
