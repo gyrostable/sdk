@@ -30,7 +30,7 @@ const gasPrice: number = 1_000_000;
 // TODO: handle this properly
 const kovanDsProxyRegistry = "0x130767E0cf05469CF11Fa3fcf270dfC1f52b9072";
 const TRANSFER = "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef";
-const USDC = "0x17d484e98402321551d39cf4a0050b18a343780f"
+const GYD = "0xd0474aeba181987a81352842d446fc6c65481417"
 
 const infuraKovanProvider = new ethers.providers.InfuraProvider("kovan", {
   projectId: "",
@@ -142,15 +142,15 @@ export default class Gyro {
     return tx;
   }
 
-  getUSDCValue(txReceipt: any): Number {
-    var usdcValue = Number(0);
+  getGydValue(txReceipt: any): Number {
+    var gydValue = Number(0);
     for (let txLogs of txReceipt.logs) {
-      if (txLogs.address.toLowerCase() == USDC && (txLogs.topics.indexOf(TRANSFER) == 0)) {
-          usdcValue += Number(txLogs.data);
+      if (txLogs.address.toLowerCase() == GYD && (txLogs.topics.indexOf(TRANSFER) == 0)) {
+          gydValue += Number(txLogs.data);
           break
       }
     }
-    return usdcValue;
+    return gydValue;
 
   }
 
@@ -160,10 +160,10 @@ export default class Gyro {
     const firstTxReceipt = await this.getTxInfo(firstTx);
     const secondTxReceipt = await this.getTxInfo(secondTx);
 
-    const usdcInValue = this.getUSDCValue(firstTxReceipt);
-    const usdcOutValue = this.getUSDCValue(secondTxReceipt);
+    const gydInValue = this.getGydValue(firstTxReceipt);
+    const gydOutValue = this.getGydValue(secondTxReceipt);
 
-    if (usdcOutValue > usdcInValue) {
+    if (gydOutValue > gydInValue) {
       return true;
     } else {
       return false;
