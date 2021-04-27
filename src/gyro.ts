@@ -12,6 +12,9 @@ import {
   GyroLib__factory as GyroLibFactory,
   MetaFaucet,
   MetaFaucet__factory as MetaFaucetFactory,
+  ArbitrageStatus,
+  ArbitrageStatus__factory as ArbitrageStatusFactory
+
 } from "@gyrostable/core";
 import { BigNumber, BigNumberish, Contract, ContractTransaction, providers, Signer } from "ethers";
 import DSProxyRegistryABI from "../abis/DSProxyRegistry.json";
@@ -19,8 +22,6 @@ import { DECIMALS } from "./constants";
 import MonetaryAmount from "./monetary-amount";
 import { MintTransactionResponse, RedeemTransactionResponse } from "./responses";
 import { Address, Optional, Reserve, Token, TokenWithAmount } from "./types";
-
-import { ethers } from "ethers";
 
 const { networks } = deployment;
 
@@ -30,12 +31,7 @@ const gasPrice: number = 1_000_000;
 // TODO: handle this properly
 const kovanDsProxyRegistry = "0x130767E0cf05469CF11Fa3fcf270dfC1f52b9072";
 const TRANSFER = "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef";
-const GYD = "0xd0474aeba181987a81352842d446fc6c65481417"
-
-const infuraKovanProvider = new ethers.providers.InfuraProvider("kovan", {
-  projectId: "",
-  projectSecret: "",
-});
+const USDC = "0x17d484e98402321551d39cf4a0050b18a343780f"
 
 /**
  * Main entrypoint to communicate with the Gyro protocol
@@ -47,6 +43,7 @@ export default class Gyro {
   private gyroLib: GyroLib;
   private metaFaucet: MetaFaucet;
   private sAmm: BPool;
+  private arbitrageStatus: ArbitrageStatus;
   private dsProxyRegistry: Contract;
 
   private static async getAddresses(
@@ -90,6 +87,8 @@ export default class Gyro {
     this.sAmm = BPoolFactory.connect(contractAddresses["pool-gyd_usdc"], this.signer);
     this.metaFaucet = MetaFaucetFactory.connect(contractAddresses.MetaFaucet, this.signer);
     this.dsProxyRegistry = new Contract(kovanDsProxyRegistry, DSProxyRegistryABI, this.signer);
+    this.arbitrageStatus = ArbitrageStatusFactory.connect(contractAddresses.ArbitrageStatus, this.signer);
+
   }
 
   get address(): Address {
@@ -138,36 +137,34 @@ export default class Gyro {
   }
 
   async getTxInfo(hash: string): Promise<any> {
-    const tx = await infuraKovanProvider.getTransactionReceipt(hash);
+    const tx = await this.provider.getTransactionReceipt(hash);
     return tx;
   }
 
-  getGydValue(txReceipt: any): Number {
-    var gydValue = Number(0);
+  getUSDCValue(txReceipt: any): BigNumber {
+    const USDCContract = ERC20__factory.connect(USDC, this.provider);
     for (let txLogs of txReceipt.logs) {
-      if (txLogs.address.toLowerCase() == GYD && (txLogs.topics.indexOf(TRANSFER) == 0)) {
-          gydValue += Number(txLogs.data);
-          break
+      try {
+        const parsedLog = USDCContract.interface.parseLog(txLogs);
+        if (txLogs.address.toLowerCase() === USDC && parsedLog.name === "Transfer") {
+          return parsedLog.args.value;
+        }
+      } catch (e) {
+        continue;
       }
     }
-    return gydValue;
-
-  }
+    return BigNumber.from(0);
+  };
 
   async hasPerformedProfitableArb(firstTx: string, secondTx: string): Promise<boolean> {
-
-
+    
     const firstTxReceipt = await this.getTxInfo(firstTx);
     const secondTxReceipt = await this.getTxInfo(secondTx);
 
-    const gydInValue = this.getGydValue(firstTxReceipt);
-    const gydOutValue = this.getGydValue(secondTxReceipt);
+    const usdcInValue = this.getUSDCValue(firstTxReceipt);
+    const usdcOutValue = this.getUSDCValue(secondTxReceipt);
 
-    if (gydOutValue > gydInValue) {
-      return true;
-    } else {
-      return false;
-    }
+    return usdcOutValue.gt(usdcInValue);
 
   }
 
@@ -183,7 +180,7 @@ export default class Gyro {
   }
 
   /**
-   * Mints at lest `minMinted` Gyro given `inputs`
+   * Mints at least `minMinted` Gyro given `inputs`
    *
    * @param inputs an array of input tokens to be used for minting
    * @param minMinted the minimum amount of Gyro to be minted, to let the caller decide on maximum slippage

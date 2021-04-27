@@ -35,7 +35,7 @@
     "printWidth": 100
   },
   "dependencies": {
-    "@gyrostable/core": "^0.1.11",
+    "@gyrostable/core": "^0.1.12",
     "ethers": "5.0.26",
     "lodash": "^4.17.20"
   }
