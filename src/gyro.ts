@@ -30,8 +30,6 @@ const gasPrice: number = 1_000_000;
 
 // TODO: handle this properly
 const kovanDsProxyRegistry = "0x130767E0cf05469CF11Fa3fcf270dfC1f52b9072";
-const TRANSFER = "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef";
-const USDC = "0x17d484e98402321551d39cf4a0050b18a343780f"
 
 /**
  * Main entrypoint to communicate with the Gyro protocol
@@ -136,36 +134,8 @@ export default class Gyro {
     return events.length > 0;
   }
 
-  async getTxInfo(hash: string): Promise<any> {
-    const tx = await this.provider.getTransactionReceipt(hash);
-    return tx;
-  }
-
-  getUSDCValue(txReceipt: any): BigNumber {
-    const USDCContract = ERC20__factory.connect(USDC, this.provider);
-    for (let txLogs of txReceipt.logs) {
-      try {
-        const parsedLog = USDCContract.interface.parseLog(txLogs);
-        if (txLogs.address.toLowerCase() === USDC && parsedLog.name === "Transfer") {
-          return parsedLog.args.value;
-        }
-      } catch (e) {
-        continue;
-      }
-    }
-    return BigNumber.from(0);
-  };
-
-  async hasPerformedProfitableArb(firstTx: string, secondTx: string): Promise<boolean> {
-    
-    const firstTxReceipt = await this.getTxInfo(firstTx);
-    const secondTxReceipt = await this.getTxInfo(secondTx);
-
-    const usdcInValue = this.getUSDCValue(firstTxReceipt);
-    const usdcOutValue = this.getUSDCValue(secondTxReceipt);
-
-    return usdcOutValue.gt(usdcInValue);
-
+  async setUserTransactions(firstTx: string, secondTx: string) {
+    this.arbitrageStatus.setTransactions(firstTx, secondTx);
   }
 
   /**
