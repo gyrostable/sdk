@@ -144,7 +144,7 @@ export default class Gyro {
       try {
         const parsedLog = this.gyroFund.interface.parseLog(txLogs);
         if (
-          txLogs.address.toLowerCase() === this.contractAddresses["token-USDC"] &&
+          txLogs.address === this.contractAddresses["token-USDC"] &&
           parsedLog.name === "Transfer"
         ) {
           return parsedLog.args.value;
