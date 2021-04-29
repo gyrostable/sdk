@@ -12,6 +12,8 @@ import {
   GyroLib__factory as GyroLibFactory,
   MetaFaucet,
   MetaFaucet__factory as MetaFaucetFactory,
+  ArbitrageStatus,
+  ArbitrageStatus__factory as ArbitrageStatusFactory,
 } from "@gyrostable/core";
 import { BigNumber, BigNumberish, Contract, ContractTransaction, providers, Signer } from "ethers";
 import DSProxyRegistryABI from "../abis/DSProxyRegistry.json";
@@ -38,6 +40,7 @@ export default class Gyro {
   private gyroLib: GyroLib;
   private metaFaucet: MetaFaucet;
   private sAmm: BPool;
+  private arbitrageStatus: ArbitrageStatus;
   private dsProxyRegistry: Contract;
 
   private static async getAddresses(
@@ -73,7 +76,7 @@ export default class Gyro {
   private constructor(
     private provider: providers.JsonRpcProvider,
     private _address: Address,
-    contractAddresses: Record<string, string>
+    private contractAddresses: Record<string, string>
   ) {
     this.signer = provider.getSigner(_address);
     this.gyroFund = GyroFundV1Factory.connect(contractAddresses.GyroProxy, this.signer);
@@ -81,6 +84,10 @@ export default class Gyro {
     this.sAmm = BPoolFactory.connect(contractAddresses["pool-gyd_usdc"], this.signer);
     this.metaFaucet = MetaFaucetFactory.connect(contractAddresses.MetaFaucet, this.signer);
     this.dsProxyRegistry = new Contract(kovanDsProxyRegistry, DSProxyRegistryABI, this.signer);
+    this.arbitrageStatus = ArbitrageStatusFactory.connect(
+      contractAddresses.ArbitrageStatus,
+      this.signer
+    );
   }
 
   get address(): Address {
@@ -128,6 +135,43 @@ export default class Gyro {
     return events.length > 0;
   }
 
+  async setUserTransactions(firstTx: string, secondTx: string) {
+    this.arbitrageStatus.setTransactions(firstTx, secondTx);
+  }
+
+  getUSDCValue(txReceipt: providers.TransactionReceipt): BigNumber {
+    for (let txLogs of txReceipt.logs) {
+      try {
+        const parsedLog = this.gyroFund.interface.parseLog(txLogs);
+        if (
+          txLogs.address === this.contractAddresses["token-USDC"] &&
+          parsedLog.name === "Transfer"
+        ) {
+          return parsedLog.args.value;
+        }
+      } catch (e) {
+        continue;
+      }
+    }
+    return BigNumber.from(0);
+  }
+
+  async verifyArbitrage(firstTx: string, secondTx: string): Promise<boolean> {
+    const [firstTxReceipt, secondTxReceipt] = await Promise.all([
+      this.provider.getTransactionReceipt(firstTx),
+      this.provider.getTransactionReceipt(secondTx),
+    ]);
+
+    if (!firstTxReceipt || !secondTxReceipt) {
+      return false;
+    }
+
+    const usdcInValue = this.getUSDCValue(firstTxReceipt);
+    const usdcOutValue = this.getUSDCValue(secondTxReceipt);
+
+    return usdcInValue.gt(0) && usdcOutValue.gt(usdcInValue);
+  }
+
   /**
    * Changes the account used to access Gyro contract
    *
@@ -140,7 +184,7 @@ export default class Gyro {
   }
 
   /**
-   * Mints at lest `minMinted` Gyro given `inputs`
+   * Mints at least `minMinted` Gyro given `inputs`
    *
    * @param inputs an array of input tokens to be used for minting
    * @param minMinted the minimum amount of Gyro to be minted, to let the caller decide on maximum slippage
