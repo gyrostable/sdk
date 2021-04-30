@@ -25,7 +25,7 @@ import { Address, Optional, Reserve, Token, TokenWithAmount } from "./types";
 const { networks } = deployment;
 
 const gasLimit: number = 2_000_000;
-const gasPrice: number = 1_000_000;
+const gasPrice: number = 1_000_000_000;
 
 // TODO: handle this properly
 const kovanDsProxyRegistry = "0x130767E0cf05469CF11Fa3fcf270dfC1f52b9072";
