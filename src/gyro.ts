@@ -76,7 +76,7 @@ export default class Gyro {
   private constructor(
     private provider: providers.JsonRpcProvider,
     private _address: Address,
-    private contractAddresses: Record<string, string>
+    readonly contractAddresses: Record<string, string>
   ) {
     this.signer = provider.getSigner(_address);
     this.gyroFund = GyroFundV1Factory.connect(contractAddresses.GyroProxy, this.signer);
