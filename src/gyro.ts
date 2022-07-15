@@ -12,8 +12,8 @@ import {
   GyroLib__factory as GyroLibFactory,
   MetaFaucet,
   MetaFaucet__factory as MetaFaucetFactory,
-  ArbitrageStatus,
-  ArbitrageStatus__factory as ArbitrageStatusFactory,
+  GyroPriceOracle,
+  GyroPriceOracle__factory as GyroPriceOracleFactory,
 } from "@gyrostable/core";
 import { BigNumber, BigNumberish, Contract, ContractTransaction, providers, Signer } from "ethers";
 import DSProxyRegistryABI from "../abis/DSProxyRegistry.json";
@@ -40,7 +40,7 @@ export default class Gyro {
   private gyroLib: GyroLib;
   private metaFaucet: MetaFaucet;
   private sAmm: BPool;
-  private arbitrageStatus: ArbitrageStatus;
+  private GyroPriceOracle: GyroPriceOracle;
   private dsProxyRegistry: Contract;
 
   private static async getAddresses(
@@ -84,8 +84,8 @@ export default class Gyro {
     this.sAmm = BPoolFactory.connect(contractAddresses["pool-gyd_usdc"], this.signer);
     this.metaFaucet = MetaFaucetFactory.connect(contractAddresses.MetaFaucet, this.signer);
     this.dsProxyRegistry = new Contract(kovanDsProxyRegistry, DSProxyRegistryABI, this.signer);
-    this.arbitrageStatus = ArbitrageStatusFactory.connect(
-      contractAddresses.ArbitrageStatus,
+    this.GyroPriceOracle = GyroPriceOracleFactory.connect(
+      contractAddresses.GyroPriceOracle,
       this.signer
     );
   }
@@ -136,7 +136,7 @@ export default class Gyro {
   }
 
   async setUserTransactions(firstTx: string, secondTx: string) {
-    this.arbitrageStatus.setTransactions(firstTx, secondTx);
+    this.GyroPriceOracle.setTransactions(firstTx, secondTx);
   }
 
   getUSDCValue(txReceipt: providers.TransactionReceipt): BigNumber {
